@@ -1,7 +1,8 @@
 #pragma once
+#define SECURITY_WIN32
 #include <windows.h>
+#include <unknwn.h>
 #include <credentialprovider.h>
-#include <string>
 
 class OpenBioCredential final : public ICredentialProviderCredential {
 public:

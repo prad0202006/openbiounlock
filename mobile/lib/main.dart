@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
       final publicKey = key.bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
       final request = jsonEncode({'type': 'pair', 'device_id': publicKey, 'public_key': publicKey, 'pairing_code': result.pairingCode});
       socket.write('$request\n');
-      final response = await socket.transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
+      final response = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
       await socket.close();
       final accepted = jsonDecode(response)['accepted'] == true;
       if (mounted) setState(() => status = accepted ? 'PC paired' : 'Pairing rejected');

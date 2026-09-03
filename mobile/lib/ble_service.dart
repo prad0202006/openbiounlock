@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-const openBioUnlockService = Guid('8c4f1000-7f7b-4c42-a6be-6f5b4b7e0001');
+final openBioUnlockService = Guid('8c4f1000-7f7b-4c42-a6be-6f5b4b7e0001');
 
 class ProximityEvent {
   const ProximityEvent(this.device, this.rssi, this.nearby);
@@ -39,7 +39,7 @@ class BleService {
 
   Future<void> connect(BluetoothDevice device) async {
     try {
-      await device.connect(timeout: const Duration(seconds: 10), license: License.free);
+      await device.connect(timeout: const Duration(seconds: 10));
     } on FlutterBluePlusException catch (error) {
       if (error.code != 'already_connected') rethrow;
     }

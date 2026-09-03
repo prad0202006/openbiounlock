@@ -1,6 +1,9 @@
 #include "CredentialProvider.h"
 #include <new>
 
+#pragma comment(linker, "/EXPORT:DllGetClassObject")
+#pragma comment(linker, "/EXPORT:DllCanUnloadNow")
+
 static HMODULE module_handle = nullptr;
 static LONG module_locks = 0;
 
@@ -34,7 +37,7 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID) {
     return TRUE;
 }
 
-extern "C" HRESULT __declspec(dllexport) WINAPI DllGetClassObject(REFCLSID clsid, REFIID riid, void** object) {
+extern "C" HRESULT STDAPICALLTYPE DllGetClassObject(REFCLSID clsid, REFIID riid, void** object) {
     static const CLSID clsid_open_bio = {0xd1aa6d25, 0x6f49, 0x4a52, {0xa2, 0xcf, 0x6f, 0x22, 0xd9, 0xd1, 0x90, 0x01}};
     if (clsid != clsid_open_bio) return CLASS_E_CLASSNOTAVAILABLE;
     auto* factory = new (std::nothrow) OpenBioClassFactory();
@@ -44,6 +47,6 @@ extern "C" HRESULT __declspec(dllexport) WINAPI DllGetClassObject(REFCLSID clsid
     return result;
 }
 
-extern "C" HRESULT __declspec(dllexport) WINAPI DllCanUnloadNow() {
+extern "C" HRESULT STDAPICALLTYPE DllCanUnloadNow() {
     return module_locks == 0 ? S_OK : S_FALSE;
 }

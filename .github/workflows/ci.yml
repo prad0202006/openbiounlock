@@ -26,8 +26,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes libpam0g-dev
       - name: Test and build daemon
         run: |
-          cargo test --manifest-path daemon/Cargo.toml --locked
-          cargo build --release --manifest-path daemon/Cargo.toml --locked
+          cargo test --manifest-path daemon/Cargo.toml
+          cargo build --release --manifest-path daemon/Cargo.toml
       - name: Build PAM module
         run: make -C linux-pam
       - name: Upload Linux artifacts
