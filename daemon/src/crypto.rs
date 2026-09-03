@@ -61,4 +61,11 @@ mod tests {
         assert!(verify_signature(signing.verifying_key().as_bytes(), &nonce, timestamp, signature.to_bytes().as_slice(), timestamp).is_ok());
         assert!(verify_signature(signing.verifying_key().as_bytes(), &nonce, timestamp, signature.to_bytes().as_slice(), timestamp + 31).is_err());
     }
+
+    #[test]
+    fn rejects_fake_64_byte_signature() {
+        let nonce = [1_u8; NONCE_LEN];
+        let fake_signature = [0xaa_u8; 64];
+        assert!(verify_signature(&[2_u8; 32], &nonce, 1_000, &fake_signature, 1_000).is_err());
+    }
 }
