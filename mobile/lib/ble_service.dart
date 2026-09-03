@@ -38,10 +38,11 @@ class BleService {
   }
 
   Future<void> connect(BluetoothDevice device) async {
+    if (device.isConnected) return;
     try {
       await device.connect(timeout: const Duration(seconds: 10));
-    } on FlutterBluePlusException catch (error) {
-      if (error.code != 'already_connected') rethrow;
+    } catch (error) {
+      if (!error.toString().contains('already_connected')) rethrow;
     }
   }
 
