@@ -20,8 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.82.0
       - name: Install PAM headers
         run: sudo apt-get update && sudo apt-get install --yes libpam0g-dev
       - name: Test and build daemon
