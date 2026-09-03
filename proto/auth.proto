@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package openbiounlock.auth.v1;
+
+message PairingRequest {
+  bytes device_id = 1;
+  bytes device_public_key = 2;
+  uint64 created_at = 3;
+  bytes pairing_code = 4;
+}
+
+message PairingResponse {
+  bool accepted = 1;
+  bytes pc_id = 2;
+  bytes pc_public_key = 3;
+  string error = 4;
+}
+
+message AuthChallenge {
+  bytes challenge_id = 1;
+  bytes nonce = 2;
+  uint64 timestamp = 3;
+  bytes pc_id = 4;
+}
+
+message AuthResponse {
+  bytes challenge_id = 1;
+  bytes device_id = 2;
+  bytes signature = 3;
+  uint64 timestamp = 4;
+}
+
+message DaemonRequest {
+  oneof body {
+    PairingRequest pairing = 1;
+    AuthResponse authentication = 2;
+  }
+}
+
+message DaemonResponse {
+  oneof body {
+    PairingResponse pairing = 1;
+    AuthChallenge challenge = 2;
+    bool authorized = 3;
+  }
+  string error = 4;
+}

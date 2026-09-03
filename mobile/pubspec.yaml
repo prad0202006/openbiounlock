@@ -1,0 +1,17 @@
+name: openbiounlock
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  local_auth: ^2.3.0
+  cryptography: ^2.7.0
+  flutter_blue_plus: ^1.32.0
+  protobuf: ^3.1.0
+  qr_code_scanner: ^1.0.1
+  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.2.2
+flutter:
+  uses-material-design: true

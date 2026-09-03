@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  daemon-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.82.0
+      - name: Test and build daemon
+        run: |
+          cargo test --manifest-path daemon/Cargo.toml
+          cargo build --release --manifest-path daemon/Cargo.toml
+      - name: Build PAM module
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpam0g-dev
+          make -C linux-pam
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            daemon/target/release/openbiounlock-daemon
+            linux-pam/pam_openbiounlock.so
+
+  mobile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.29.0
+          cache: true
+      - name: Analyze and test Flutter client
+        working-directory: mobile
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+  windows-provider:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile Credential Provider DLL
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force windows-cp\out | Out-Null
+          cl /nologo /std:c++17 /EHsc /LD /I windows-cp windows-cp\CredentialProvider.cpp windows-cp\dllmain.cpp /link /OUT:windows-cp\out\OpenBioUnlockCredentialProvider.dll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: windows-cp/out/OpenBioUnlockCredentialProvider.dll

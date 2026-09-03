@@ -1,0 +1,40 @@
+# Rust
+**/target/
+**/*.rs.bk
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/build/
+**/pubspec.lock
+
+# Native build output
+**/out/
+**/Debug/
+**/Release/
+**/*.so
+**/*.dll
+**/*.dylib
+**/*.pdb
+**/*.obj
+**/*.o
+**/*.a
+
+# IDE and OS files
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
