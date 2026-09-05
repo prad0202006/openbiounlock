@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 final openBioUnlockService = Guid('8c4f1000-7f7b-4c42-a6be-6f5b4b7e0001');
+final openBioUnlockControlCharacteristic = Guid('8c4f1001-7f7b-4c42-a6be-6f5b4b7e0001');
 
 class ProximityEvent {
   const ProximityEvent(this.device, this.rssi, this.nearby);
@@ -44,6 +45,14 @@ class BleService {
     } catch (error) {
       if (!error.toString().contains('already_connected')) rethrow;
     }
+  }
+
+  Future<List<BluetoothService>> connectAndDiscover(BluetoothDevice device) async {
+    await connect(device);
+    final services = await device.discoverServices();
+    final hasOpenBioUnlock = services.any((service) => service.uuid == openBioUnlockService && service.characteristics.any((characteristic) => characteristic.uuid == openBioUnlockControlCharacteristic));
+    if (!hasOpenBioUnlock) throw StateError('device does not expose the OpenBioUnlock GATT service');
+    return services;
   }
 
   Future<void> dispose() async {

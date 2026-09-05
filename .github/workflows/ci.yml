@@ -37,6 +37,33 @@ jobs:
             daemon/target/release/openbiounlock-daemon
             linux-pam/pam_openbiounlock.so
 
+  build-desktop-linux:
+    name: Build Linux Qt desktop and AppImage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install --yes cmake ninja-build pkg-config libssl-dev libsecret-1-dev qt6-base-dev qt6-base-dev-tools libqt6bluetooth6-dev
+      - name: Configure and build unified native tree
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build desktop and adapters
+        run: cmake --build build --target openbiounlock-desktop openbiounlock-daemon openbiounlock-pam
+      - name: Build Debian package
+        run: cpack --config build/CPackConfig.cmake -G DEB -B build/packages
+      - name: Build AppImage
+        run: |
+          curl -L --fail --retry 3 -o linuxdeploy.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy.AppImage
+          APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy.AppImage --appdir AppDir --executable build/openbiounlock-desktop --desktop-file packaging/openbiounlock.desktop --output appimage
+      - name: Upload Linux desktop packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: openbiounlock-linux-desktop
+          if-no-files-found: error
+          path: |
+            build/packages/*.deb
+            OpenBioUnlock*.AppImage
+
   build-mobile:
     name: Analyze and build Flutter Android client
     runs-on: ubuntu-24.04
@@ -91,3 +118,36 @@ jobs:
           name: openbiounlock-windows
           if-no-files-found: error
           path: windows-cp/out/OpenBioUnlockCredentialProvider.dll
+
+    build-desktop-windows:
+      name: Build Windows Qt desktop and MSI
+      runs-on: windows-2022
+      steps:
+        - uses: actions/checkout@v4
+        - uses: ilammy/msvc-dev-cmd@v1
+          with:
+            arch: x64
+        - uses: jurplel/install-qt-action@v4
+          with:
+            version: 6.7.3
+            arch: win64_msvc2022_64
+            modules: qtconnectivity
+            cache: true
+        - name: Install OpenSSL
+          shell: pwsh
+          run: vcpkg install openssl:x64-windows
+        - name: Configure and build unified native tree
+          shell: pwsh
+          run: cmake -S . -B build -A x64 -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
+        - name: Build desktop and Credential Provider
+          shell: pwsh
+          run: cmake --build build --config Release --target openbiounlock-desktop openbiounlock-credential-provider openbiounlock-daemon
+        - name: Build MSI package
+          shell: pwsh
+          run: cpack --config build/CPackConfig.cmake -G WIX -B build/packages
+        - name: Upload Windows desktop packages
+          uses: actions/upload-artifact@v4
+          with:
+            name: openbiounlock-windows-desktop
+            if-no-files-found: error
+            path: build/packages/*.msi

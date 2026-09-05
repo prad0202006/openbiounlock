@@ -51,14 +51,32 @@ class _HomePageState extends State<HomePage> {
     if (result == null) return;
     try {
       final key = await crypto.publicKey();
+      final exchangeKey = await crypto.exchangePublicKey();
+      await crypto.establishSession(result.pcKey);
       final socket = await Socket.connect(result.host, result.port, timeout: const Duration(seconds: 8));
       final publicKey = key.bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
-      final request = jsonEncode({'type': 'pair', 'device_id': publicKey, 'public_key': publicKey, 'pairing_code': result.pairingCode});
+      final exchangePublicKey = exchangeKey.bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+      final request = jsonEncode({'type': 'pair', 'device_id': publicKey, 'public_key': publicKey, 'x25519_public_key': exchangePublicKey, 'pairing_code': result.pairingCode});
       socket.write('$request\n');
       final response = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
-      await socket.close();
       final accepted = jsonDecode(response)['accepted'] == true;
-      if (mounted) setState(() => status = accepted ? 'PC paired' : 'Pairing rejected');
+      if (accepted) {
+        final challengeRequest = await crypto.encryptEnvelope(publicKey, {'type': 'challenge'});
+        socket.write('${jsonEncode(challengeRequest)}\n');
+        final challengeLine = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
+        final challenge = await crypto.decryptEnvelope(publicKey, jsonDecode(challengeLine) as Map<String, dynamic>);
+        final nonce = _decodeHex(challenge['nonce'] as String);
+        final timestamp = challenge['timestamp'] as int;
+        final signature = await crypto.signChallenge(nonce, timestamp);
+        final verifyRequest = await crypto.encryptEnvelope(publicKey, {'type': 'verify', 'nonce': challenge['nonce'], 'timestamp': timestamp, 'signature': _hex(signature)});
+        socket.write('${jsonEncode(verifyRequest)}\n');
+        final authorizationLine = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
+        final authorized = await crypto.decryptEnvelope(publicKey, jsonDecode(authorizationLine) as Map<String, dynamic>);
+        if (!mounted) return;
+        setState(() => status = authorized['authorized'] == true ? 'PC paired and challenge verified' : 'PC paired, challenge rejected');
+      }
+      await socket.close();
+      if (mounted && !accepted) setState(() => status = 'Pairing rejected');
     } catch (error) { if (mounted) setState(() => status = 'Pairing failed: $error'); }
   }
 
@@ -77,9 +95,10 @@ class _HomePageState extends State<HomePage> {
 }
 
 class PairingPayload {
-  const PairingPayload({required this.host, required this.port, required this.pcKey, required this.pairingCode});
+  const PairingPayload({required this.host, required this.port, required this.pcId, required this.pcKey, required this.pairingCode});
   final String host;
   final int port;
+  final String pcId;
   final String pcKey;
   final String pairingCode;
 
@@ -88,11 +107,15 @@ class PairingPayload {
     final host = value['host'];
     final port = value['port'];
     final key = value['x25519_public_key'];
+    final pcId = value['pc_id'];
     final code = value['pairing_code'];
-    if (value['version'] != 1 || host is! String || port is! int || port < 1 || port > 65535 || key is! String || key.length != 64 || code is! String || code.isEmpty) throw const FormatException('invalid OpenBioUnlock pairing code');
-    return PairingPayload(host: host, port: port, pcKey: key, pairingCode: code);
+    if (value['version'] != 1 || host is! String || port is! int || port < 1 || port > 65535 || pcId is! String || pcId.isEmpty || key is! String || key.length != 64 || code is! String || code.isEmpty) throw const FormatException('invalid OpenBioUnlock pairing code');
+    return PairingPayload(host: host, port: port, pcId: pcId, pcKey: key, pairingCode: code);
   }
 }
+
+String _hex(List<int> bytes) => bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+Uint8List _decodeHex(String value) { if (value.length.isOdd) throw const FormatException('invalid hexadecimal value'); final bytes = <int>[]; for (var index = 0; index < value.length; index += 2) { final byte = int.tryParse(value.substring(index, index + 2), radix: 16); if (byte == null) throw const FormatException('invalid hexadecimal value'); bytes.add(byte); } return Uint8List.fromList(bytes); }
 
 class PairingScanner extends StatefulWidget {
   const PairingScanner({super.key});

@@ -12,9 +12,9 @@
 #include <qrcodegen.hpp>
 
 namespace openbiounlock {
-PairingDialog::PairingDialog(const QString &pcId, quint16 port, QWidget *parent) : QDialog(parent) {
+PairingDialog::PairingDialog(const QByteArray &payloadBytes, QWidget *parent) : QDialog(parent) {
     setWindowTitle(QStringLiteral("Pair mobile device")); setModal(true); resize(520, 620);
-    const QString payload = QStringLiteral("openbiounlock://pair?pc=%1&port=%2").arg(pcId).arg(port);
+    const QString payload = QString::fromUtf8(payloadBytes);
     auto *layout = new QVBoxLayout(this); auto *title = new QLabel(QStringLiteral("Scan this pairing code with the OpenBioUnlock mobile app."), this); title->setWordWrap(true); layout->addWidget(title);
     codeView_ = new QLabel(this); codeView_->setAlignment(Qt::AlignCenter); codeView_->setMinimumSize(420, 420); layout->addWidget(codeView_, 1);
     payloadView_ = new QLineEdit(payload, this); payloadView_->setReadOnly(true); layout->addWidget(payloadView_);

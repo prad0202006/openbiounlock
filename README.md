@@ -12,22 +12,24 @@ OpenBioUnlock is a local-first biometric approval bridge for workstation authent
 - `proto/`: versioned cross-platform authentication schema.
 - `.github/workflows/ci.yml`: hosted-runner build and test pipeline.
 
-## CI and artifacts
-
 ## Desktop build
 
-The native desktop controller requires Qt 6.4 or newer, OpenSSL 3, CMake 3.21 or newer, and the Nayuki QR Code Generator dependency downloaded by CMake. Linux builds also require `libsecret-1` development headers and an active Secret Service provider. Configure and build it with:
+The native desktop controller requires Qt 6.4 or newer with Qt Bluetooth, OpenSSL 3, CMake 3.21 or newer, and the Nayuki QR Code Generator dependency downloaded by CMake. Linux builds also require `libsecret-1` development headers and an active Secret Service provider. Configure and build it with:
 
 ```bash
 cmake -S . -B build
 cmake --build build --config Release
 ```
 
-The desktop listener uses TCP and UDP port `43295` by default. TCP is bound to loopback; UDP discovery uses the local broadcast address. Pairing payloads are exchanged out of band through the QR ceremony.
+The desktop listener uses TCP and UDP port `43295` by default. TCP is bound to loopback; UDP discovery uses the local broadcast address. Pairing payloads are exchanged out of band through the QR ceremony and contain a five-minute one-time code plus the workstation's ephemeral X25519 public key.
+
+After pairing, TCP requests and responses use an AES-256-GCM envelope authenticated with the paired device identity as associated data. The mobile client signs the fresh 32-byte challenge and big-endian timestamp with its Ed25519 key after biometric approval. Unencrypted post-pairing requests are rejected.
+
+## CI and artifacts
 
 Push to `main` or `master`, or open a pull request targeting either branch. GitHub Actions runs Rust tests and a release daemon build, PAM compilation, Flutter analysis/tests and Android APK compilation, and Windows MSVC compilation of the Credential Provider DLL.
 
-Artifacts are named `openbiounlock-linux`, `openbiounlock-android`, and `openbiounlock-windows`. The workflow does not sign release binaries or install them on a workstation. Future signed releases require protected secrets such as `WINDOWS_CERTIFICATE_BASE64`, `WINDOWS_CERTIFICATE_PASSWORD`, and `ANDROID_KEYSTORE_BASE64`; never commit those values.
+Artifacts include the Rust/PAM and Android outputs, plus Linux Debian/AppImage packages and a Windows MSI/Credential Provider build. The workflow does not sign release binaries or install them on a workstation. Future signed releases require protected secrets such as `WINDOWS_CERTIFICATE_BASE64`, `WINDOWS_CERTIFICATE_PASSWORD`, and `ANDROID_KEYSTORE_BASE64`; never commit those values.
 
 ## Linux installation
 
@@ -65,7 +67,7 @@ Enable Bluetooth permissions in Android/iOS settings. RSSI is affected by walls,
 - `OPENBIOUNLOCK_SOCKET`: deployment-specific socket override for service wrappers and PAM arguments.
 - `OPENBIOUNLOCK_PAIRING_TTL`: deployment policy for one-time pairing-code expiry.
 
-Reference endpoints are TCP loopback `127.0.0.1:45821`, Unix socket `/var/run/openbiounlock.sock`, and Windows named pipe `\\.\pipe\OpenBioUnlockPipe`. Do not expose TCP beyond loopback without authenticated encryption and firewall policy.
+Reference endpoints are desktop TCP/UDP `43295`, daemon TCP loopback `127.0.0.1:45821`, Unix socket `/var/run/openbiounlock.sock`, and Windows named pipe `\\.\pipe\OpenBioUnlockPipe`. Do not expose daemon TCP beyond loopback without authenticated encryption and firewall policy.
 
 ## Troubleshooting
 

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=OpenBioUnlock
+Comment=Biometric workstation approval bridge
+Exec=openbiounlock-desktop
+Icon=openbiounlock
+Categories=Security;Utility;
+Terminal=false

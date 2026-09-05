@@ -7,6 +7,7 @@ message PairingRequest {
   bytes device_public_key = 2;
   uint64 created_at = 3;
   bytes pairing_code = 4;
+  bytes device_x25519_public_key = 5;
 }
 
 message PairingResponse {
@@ -14,6 +15,7 @@ message PairingResponse {
   bytes pc_id = 2;
   bytes pc_public_key = 3;
   string error = 4;
+  bytes pc_x25519_public_key = 5;
 }
 
 message AuthChallenge {
@@ -30,10 +32,18 @@ message AuthResponse {
   uint64 timestamp = 4;
 }
 
+message SecureEnvelope {
+  bytes device_id = 1;
+  bytes nonce = 2;
+  bytes ciphertext = 3;
+  bytes tag = 4;
+}
+
 message DaemonRequest {
   oneof body {
     PairingRequest pairing = 1;
     AuthResponse authentication = 2;
+    SecureEnvelope secure = 3;
   }
 }
 
@@ -42,6 +52,7 @@ message DaemonResponse {
     PairingResponse pairing = 1;
     AuthChallenge challenge = 2;
     bool authorized = 3;
+    SecureEnvelope secure = 5;
   }
   string error = 4;
 }

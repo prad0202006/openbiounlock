@@ -17,6 +17,7 @@ public:
     void stop();
     bool isRunning() const;
     quint16 port() const;
+    QByteArray pairingPayload(const QString &host = QString());
 Q_SIGNALS:
     void logMessage(const QString &message);
     void statusChanged(const QString &status);
@@ -29,13 +30,19 @@ private Q_SLOTS:
     void clientDisconnected();
 private:
     void processLine(QTcpSocket *socket, const QByteArray &line);
+    QJsonObject encryptedResponse(const QString &deviceId, const QJsonObject &payload);
+    bool decryptRequest(const QJsonObject &envelope, QString *deviceId, QJsonObject *payload, QString *error);
     QTcpServer tcpServer_;
     QUdpSocket udpSocket_;
     QTimer *discoveryTimer_ = nullptr;
     QHash<QString, QByteArray> pairedKeys_;
+    QHash<QString, QByteArray> sessionKeys_;
     QHash<QTcpSocket *, QByteArray> buffers_;
     crypto::ReplayGuard replayGuard_;
     quint16 port_ = 43295;
     QByteArray pcId_;
+    crypto::X25519KeyPair x25519KeyPair_;
+    QString pairingCode_;
+    qint64 pairingCreatedAt_ = 0;
 };
 }
