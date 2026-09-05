@@ -5,6 +5,7 @@ OpenBioUnlock is a local-first biometric approval bridge for workstation authent
 ## Repository layout
 
 - `daemon/`: Rust service, OS keyring integration, TCP/Unix/named-pipe IPC, and signature verification.
+- `src/`: Qt desktop controller with the system tray lifecycle, TCP/UDP discovery server, OpenSSL cryptography, OS credential vault wrapper, dashboard, and QR pairing dialog.
 - `windows-cp/`: Windows Credential Provider COM adapter and installer.
 - `linux-pam/`: PAM adapter for sudo/display managers and installer.
 - `mobile/`: Flutter client with biometric signing and BLE proximity discovery.
@@ -12,6 +13,17 @@ OpenBioUnlock is a local-first biometric approval bridge for workstation authent
 - `.github/workflows/ci.yml`: hosted-runner build and test pipeline.
 
 ## CI and artifacts
+
+## Desktop build
+
+The native desktop controller requires Qt 6.4 or newer, OpenSSL 3, CMake 3.21 or newer, and the Nayuki QR Code Generator dependency downloaded by CMake. Linux builds also require `libsecret-1` development headers and an active Secret Service provider. Configure and build it with:
+
+```bash
+cmake -S . -B build
+cmake --build build --config Release
+```
+
+The desktop listener uses TCP and UDP port `43295` by default. TCP is bound to loopback; UDP discovery uses the local broadcast address. Pairing payloads are exchanged out of band through the QR ceremony.
 
 Push to `main` or `master`, or open a pull request targeting either branch. GitHub Actions runs Rust tests and a release daemon build, PAM compilation, Flutter analysis/tests and Android APK compilation, and Windows MSVC compilation of the Credential Provider DLL.
 
