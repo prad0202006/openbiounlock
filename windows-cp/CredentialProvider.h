@@ -2,6 +2,7 @@
 #define SECURITY_WIN32
 #include <windows.h>
 #include <unknwn.h>
+#include <objbase.h>
 #include <credentialprovider.h>
 
 class OpenBioCredential final : public ICredentialProviderCredential {

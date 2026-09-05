@@ -26,6 +26,16 @@ class _HomePageState extends State<HomePage> {
   String status = 'Ready';
   StreamSubscription<ProximityEvent>? proximitySubscription;
 
+  Future<String> _readLine(Socket socket) async {
+    final bytes = <int>[];
+    await for (final chunk in socket) {
+      bytes.addAll(chunk);
+      final newline = bytes.indexOf(10);
+      if (newline >= 0) return utf8.decode(bytes.sublist(0, newline), allowMalformed: false);
+    }
+    throw const SocketException('connection closed before a complete response was received');
+  }
+
   Future<void> testBiometric() async {
     try {
       final signature = await crypto.signChallenge(Uint8List(32), DateTime.now().millisecondsSinceEpoch ~/ 1000);
@@ -58,19 +68,19 @@ class _HomePageState extends State<HomePage> {
       final exchangePublicKey = exchangeKey.bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
       final request = jsonEncode({'type': 'pair', 'device_id': publicKey, 'public_key': publicKey, 'x25519_public_key': exchangePublicKey, 'pairing_code': result.pairingCode});
       socket.write('$request\n');
-      final response = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
+      final response = await _readLine(socket).timeout(const Duration(seconds: 8));
       final accepted = jsonDecode(response)['accepted'] == true;
       if (accepted) {
         final challengeRequest = await crypto.encryptEnvelope(publicKey, {'type': 'challenge'});
         socket.write('${jsonEncode(challengeRequest)}\n');
-        final challengeLine = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
+        final challengeLine = await _readLine(socket).timeout(const Duration(seconds: 8));
         final challenge = await crypto.decryptEnvelope(publicKey, jsonDecode(challengeLine) as Map<String, dynamic>);
         final nonce = _decodeHex(challenge['nonce'] as String);
         final timestamp = challenge['timestamp'] as int;
         final signature = await crypto.signChallenge(nonce, timestamp);
         final verifyRequest = await crypto.encryptEnvelope(publicKey, {'type': 'verify', 'nonce': challenge['nonce'], 'timestamp': timestamp, 'signature': _hex(signature)});
         socket.write('${jsonEncode(verifyRequest)}\n');
-        final authorizationLine = await socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).first.timeout(const Duration(seconds: 8));
+        final authorizationLine = await _readLine(socket).timeout(const Duration(seconds: 8));
         final authorized = await crypto.decryptEnvelope(publicKey, jsonDecode(authorizationLine) as Map<String, dynamic>);
         if (!mounted) return;
         setState(() => status = authorized['authorized'] == true ? 'PC paired and challenge verified' : 'PC paired, challenge rejected');

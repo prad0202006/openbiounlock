@@ -46,9 +46,11 @@ Start the daemon under a service manager with `RUST_LOG=info` or `RUST_LOG=debug
 
 ## Windows installation
 
-Requirements: Windows SDK, Visual Studio C++ build tools, Rust stable, administrator rights, and a suitable code-signing certificate.
+Requirements: Windows SDK, Visual Studio C++ build tools, Qt 6.4 with Qt Bluetooth, OpenSSL 3, Rust stable, administrator rights, and a suitable code-signing certificate. The daemon remains on Rust edition 2021 for stable-runner compatibility; the top-level CMake build also compiles the desktop controller and Credential Provider DLL.
 
 Build the daemon and DLL in CI or locally with MSVC. Copy the signed artifacts into `C:\Program Files\OpenBioUnlock`, then run `windows-cp/install.ps1` from elevated PowerShell. The script registers the COM CLSID, Credential Provider, and automatic daemon service. Test in a disposable VM first because Credential Providers load inside `LogonUI.exe`.
+
+The Credential Provider uses `extern "C"` exports for `DllMain`, `DllGetClassObject`, and `DllCanUnloadNow`; GUID definitions are isolated to the DLL entry-point translation unit with `INITGUID`. Do not load an unsigned provider into a production logon process.
 
 ## Pairing and BLE
 
@@ -84,3 +86,5 @@ Reference endpoints are desktop TCP/UDP `43295`, daemon TCP loopback `127.0.0.1:
 ## Security boundaries
 
 The design assumes trusted host and phone operating systems and an in-person pairing ceremony. It does not protect against a compromised kernel, rooted phone, stolen unlocked phone, or malware with access to the authenticated user session. Review and sign all native artifacts before deployment.
+
+The desktop vault wrapper uses Windows DPAPI with machine-bound protection and Linux Secret Service through `libsecret`. Password wrappers are never sent to the mobile client; only the local login-provider path may release a vault value after a verified workstation challenge.

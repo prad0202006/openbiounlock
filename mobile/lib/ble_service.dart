@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'dart:async';
 
 final openBioUnlockService = Guid('8c4f1000-7f7b-4c42-a6be-6f5b4b7e0001');
 final openBioUnlockControlCharacteristic = Guid('8c4f1001-7f7b-4c42-a6be-6f5b4b7e0001');
@@ -12,13 +12,14 @@ class ProximityEvent {
 }
 
 class BleService {
-  final _devices = StreamController<ProximityEvent>.broadcast();
+  final _devices = StreamController<ProximityEvent>.broadcast(sync: true);
   StreamSubscription<List<ScanResult>>? _subscription;
   final Map<DeviceIdentifier, bool> _nearby = {};
   Stream<ProximityEvent> get devices => _devices.stream;
 
   Future<void> startProximityScan({int nearThreshold = -70, int farThreshold = -82}) async {
     await _subscription?.cancel();
+    await FlutterBluePlus.stopScan();
     _subscription = FlutterBluePlus.onScanResults.listen((results) {
       for (final result in results) {
         if (!result.advertisementData.serviceUuids.contains(openBioUnlockService)) continue;
@@ -28,7 +29,7 @@ class BleService {
         _devices.add(ProximityEvent(result.device, result.rssi, nearby));
       }
     });
-    await FlutterBluePlus.startScan(withServices: [openBioUnlockService]);
+    await FlutterBluePlus.startScan(withServices: [openBioUnlockService], continuousUpdates: true);
   }
 
   Future<void> stop() async {

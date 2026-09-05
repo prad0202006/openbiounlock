@@ -1,3 +1,8 @@
+#define INITGUID
+#include <windows.h>
+#include <unknwn.h>
+#include <objbase.h>
+#include <credentialprovider.h>
 #include "CredentialProvider.h"
 #include <new>
 
