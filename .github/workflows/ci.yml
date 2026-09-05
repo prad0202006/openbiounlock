@@ -42,6 +42,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get install --yes cmake ninja-build pkg-config libssl-dev libsecret-1-dev qt6-base-dev qt6-base-dev-tools libqt6bluetooth6-dev
       - name: Configure and build unified native tree
@@ -124,6 +125,7 @@ jobs:
       runs-on: windows-2022
       steps:
         - uses: actions/checkout@v4
+        - uses: dtolnay/rust-toolchain@stable
         - uses: ilammy/msvc-dev-cmd@v1
           with:
             arch: x64
